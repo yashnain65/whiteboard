@@ -529,4 +529,203 @@ function startPresentation() {
 
 // Zoom Functions
 function zoomIn() {
-    zoomLevel = Math.min(zoomLevel + 0
+    zoomLevel = Math.min(zoomLevel + 0.1, 2);
+    canvas.style.transform = `scale(${zoomLevel})`;
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(zoomLevel - 0.1, 0.5);
+    canvas.style.transform = `scale(${zoomLevel})`;
+}
+
+function resetZoom() {
+    zoomLevel = 1;
+    canvas.style.transform = `scale(1)`;
+}
+
+// Dark Mode Toggle
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const icon = darkModeToggle.querySelector('i');
+    if (document.body.classList.contains('dark-mode')) {
+        icon.classList.remove('fa-moon');
+        icon.classList.add('fa-sun');
+    } else {
+        icon.classList.remove('fa-sun');
+        icon.classList.add('fa-moon');
+    }
+}
+
+// Keyboard Shortcuts
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'z':
+                    e.preventDefault();
+                    undo();
+                    break;
+                case 'y':
+                    e.preventDefault();
+                    redo();
+                    break;
+                case 'n':
+                    e.preventDefault();
+                    addNewSlide();
+                    break;
+                case 'd':
+                    e.preventDefault();
+                    currentMode = 'draw';
+                    updateModeUI();
+                    break;
+                case 't':
+                    e.preventDefault();
+                    currentMode = 'text';
+                    addTextBox();
+                    updateModeUI();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    saveProject();
+                    break;
+            }
+        }
+        
+        if (e.key === 'F5') {
+            e.preventDefault();
+            startPresentation();
+        }
+        
+        if (e.key === 'Escape') {
+            document.getElementById('presentModal').classList.add('hidden');
+        }
+    });
+}
+
+function updateModeUI() {
+    drawBtn.classList.remove('active');
+    textBtn.classList.remove('active');
+    shapeBtn.classList.remove('active');
+    
+    if (currentMode === 'draw') drawBtn.classList.add('active');
+    if (currentMode === 'text') textBtn.classList.add('active');
+    if (currentMode === 'shape') shapeBtn.classList.add('active');
+}
+
+function updateUI() {
+    updateModeUI();
+    renderSlidesList();
+}
+
+// Event Listeners
+function setupEventListeners() {
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+    
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+    
+    drawBtn.onclick = () => {
+        currentMode = 'draw';
+        updateModeUI();
+    };
+    
+    textBtn.onclick = () => {
+        currentMode = 'text';
+        addTextBox();
+        updateModeUI();
+    };
+    
+    shapeBtn.onclick = () => {
+        currentMode = 'shape';
+        shapesPanel.classList.toggle('hidden');
+        updateModeUI();
+    };
+    
+    imageBtn.onclick = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 50, 50, 200, 150);
+                    saveCurrentDrawing();
+                    saveToHistory();
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    };
+    
+    undoBtn.onclick = undo;
+    redoBtn.onclick = redo;
+    clearBtn.onclick = clearBoard;
+    presentBtn.onclick = startPresentation;
+    exportBtn.onclick = exportAsPDF;
+    saveBtn.onclick = saveProject;
+    newSlideBtn.onclick = addNewSlide;
+    deleteSlideBtn.onclick = deleteSlide;
+    duplicateSlideBtn.onclick = duplicateSlide;
+    
+    penColorInput.onchange = (e) => penColor = e.target.value;
+    penSizeInput.oninput = (e) => {
+        penSize = parseInt(e.target.value);
+        sizeValue.innerText = penSize + 'px';
+    };
+    
+    bgType.onchange = () => {
+        slides[currentSlideIndex].background = bgType.value;
+        redrawCurrentSlide();
+        saveCurrentDrawing();
+    };
+    
+    fontSizeInput.oninput = (e) => {
+        fontSize = parseInt(e.target.value);
+        textBoxes.forEach(box => box.fontSize = fontSize);
+        drawAllTextBoxes();
+    };
+    
+    textColorInput.onchange = (e) => {
+        textColor = e.target.value;
+        textBoxes.forEach(box => box.color = textColor);
+        drawAllTextBoxes();
+    };
+    
+    zoomInBtn.onclick = zoomIn;
+    zoomOutBtn.onclick = zoomOut;
+    resetZoomBtn.onclick = resetZoom;
+    darkModeToggle.onclick = toggleDarkMode;
+    
+    // Shape options
+    document.querySelectorAll('.shape-option').forEach(btn => {
+        btn.onclick = () => {
+            currentShape = btn.getAttribute('data-shape');
+            currentMode = 'shape';
+            shapesPanel.classList.add('hidden');
+            updateModeUI();
+            alert(`Shape tool: ${currentShape} - Click and drag on canvas`);
+        };
+    });
+    
+    window.addEventListener('resize', () => {
+        saveCurrentDrawing();
+        resizeCanvas();
+    });
+}
+
+// Auto-save every 30 seconds
+setInterval(() => {
+    saveProject();
+}, 30000);
+
+// Start the app
+init();
