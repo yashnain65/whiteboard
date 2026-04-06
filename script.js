@@ -1,88 +1,94 @@
-const canvas = document.getElementById('paintCanvas');
-const ctx = canvas.getContext('2d');
+// Initialize Fabric Canvas
+const canvas = new fabric.Canvas('board', {
+    width: window.innerWidth - 70,
+    height: window.innerHeight - 60,
+    isDrawingMode: true
+});
+
+// Settings variables
 const colorPicker = document.getElementById('colorPicker');
-const lineWidth = document.getElementById('lineWidth');
-const clearBtn = document.getElementById('clearBtn');
-const eraserBtn = document.getElementById('eraserBtn');
-const penBtn = document.getElementById('penBtn');
-const downloadBtn = document.getElementById('downloadBtn');
+const widthSlider = document.getElementById('widthSlider');
 
-// Canvas ko full screen set karna
-function resizeCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 60; // Toolbar ki height hata kar
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+// Sync Brush Settings
+canvas.freeDrawingBrush.color = colorPicker.value;
+canvas.freeDrawingBrush.width = parseInt(widthSlider.value);
 
-let painting = false;
-let isEraser = false;
+colorPicker.oninput = () => {
+    canvas.freeDrawingBrush.color = colorPicker.value;
+};
 
-// Drawing Functions
-function startPosition(e) {
-    painting = true;
-    draw(e);
+widthSlider.oninput = () => {
+    canvas.freeDrawingBrush.width = parseInt(widthSlider.value);
+};
+
+// Tool Selection Logic
+function deactivateAll() {
+    canvas.isDrawingMode = false;
+    document.querySelectorAll('.sidebar button').forEach(btn => btn.classList.remove('active'));
 }
 
-function finishedPosition() {
-    painting = false;
-    ctx.beginPath();
-}
+document.getElementById('penTool').onclick = function() {
+    deactivateAll();
+    canvas.isDrawingMode = true;
+    this.classList.add('active');
+};
 
-function draw(e) {
-    if (!painting) return;
+document.getElementById('selectTool').onclick = function() {
+    deactivateAll();
+    this.classList.add('active');
+};
 
-    // Mouse aur Touch dono ke coordinate handle karna
-    const x = e.clientX || e.touches[0].clientX;
-    const y = (e.clientY || e.touches[0].clientY) - 60;
+document.getElementById('rectTool').onclick = function() {
+    deactivateAll();
+    const rect = new fabric.Rect({
+        left: 100, top: 100, fill: 'transparent', 
+        stroke: colorPicker.value, strokeWidth: parseInt(widthSlider.value),
+        width: 100, height: 100
+    });
+    canvas.add(rect);
+    this.classList.add('active');
+};
 
-    ctx.lineWidth = lineWidth.value;
-    ctx.lineCap = 'round';
-    
-    if (isEraser) {
-        ctx.strokeStyle = '#ffffff'; // Eraser matlab white color
-    } else {
-        ctx.strokeStyle = colorPicker.value;
-    }
+document.getElementById('circleTool').onclick = function() {
+    deactivateAll();
+    const circle = new fabric.Circle({
+        left: 150, top: 150, radius: 50,
+        fill: 'transparent', stroke: colorPicker.value, strokeWidth: parseInt(widthSlider.value)
+    });
+    canvas.add(circle);
+    this.classList.add('active');
+};
 
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-}
+document.getElementById('textTool').onclick = function() {
+    deactivateAll();
+    const text = new fabric.IText('Double click to type', {
+        left: 100, top: 100, fill: colorPicker.value, fontSize: 24
+    });
+    canvas.add(text);
+    this.classList.add('active');
+};
 
-// Event Listeners for Mouse
-canvas.addEventListener('mousedown', startPosition);
-canvas.addEventListener('mouseup', finishedPosition);
-canvas.addEventListener('mousemove', draw);
+document.getElementById('eraserTool').onclick = function() {
+    deactivateAll();
+    // Fabric.js simple eraser: Draw with background color
+    canvas.isDrawingMode = true;
+    canvas.freeDrawingBrush.color = '#ffffff';
+    this.classList.add('active');
+};
 
-// Event Listeners for Touch (Mobile)
-canvas.addEventListener('touchstart', (e) => { e.preventDefault(); startPosition(e); });
-canvas.addEventListener('touchend', finishedPosition);
-canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
+document.getElementById('clearBtn').onclick = () => {
+    if(confirm("Clear everything?")) canvas.clear();
+};
 
-// Toolbar Actions
-eraserBtn.addEventListener('click', () => {
-    isEraser = true;
-    eraserBtn.classList.add('active');
-    penBtn.classList.remove('active');
-});
-
-penBtn.addEventListener('click', () => {
-    isEraser = false;
-    penBtn.classList.add('active');
-    eraserBtn.classList.remove('active');
-});
-
-clearBtn.addEventListener('click', () => {
-    if(confirm("Kya aap pura board saaf karna chahte hain?")) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-});
-
-downloadBtn.addEventListener('click', () => {
+document.getElementById('saveBtn').onclick = () => {
+    const dataURL = canvas.toDataURL({ format: 'png', quality: 1 });
     const link = document.createElement('a');
-    link.download = 'my-drawing.png';
-    link.href = canvas.toDataURL();
+    link.download = 'whiteboard-export.png';
+    link.href = dataURL;
     link.click();
-});
+};
+
+// Handle window resize
+window.onresize = () => {
+    canvas.setDimensions({ width: window.innerWidth - 70, height: window.innerHeight - 60 });
+};
