@@ -2,51 +2,518 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yash Pro Whiteboard v2.0</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SlideBoard - PowerPoint + Whiteboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e2f;
+            color: #fff;
+            overflow: hidden;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: #2d2d3a;
+            padding: 10px 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-bottom: 1px solid #444;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .tool-btn {
+            background: #3a3a4a;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #5a5a7a;
+            transform: scale(1.02);
+        }
+
+        .tool-btn.active {
+            background: #0078d4;
+            box-shadow: 0 0 5px #0078d4;
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 35px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .slider-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #3a3a4a;
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        /* Main Area */
+        .main-area {
+            display: flex;
+            height: calc(100vh - 70px);
+        }
+
+        /* Slides Panel (Left) */
+        .slides-panel {
+            width: 200px;
+            background: #252530;
+            overflow-y: auto;
+            padding: 15px 10px;
+            border-right: 1px solid #444;
+        }
+
+        .slide-thumb {
+            background: #3a3a4a;
+            margin-bottom: 12px;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .slide-thumb:hover {
+            background: #4a4a5a;
+        }
+
+        .slide-thumb.active-slide {
+            border-color: #0078d4;
+            background: #2a4a6a;
+        }
+
+        /* Canvas Area (Right) */
+        .canvas-container {
+            flex: 1;
+            position: relative;
+            background: #e2e2e2;
+            overflow: hidden;
+        }
+
+        #boardCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            cursor: crosshair;
+        }
+
+        /* Text overlay for PowerPoint style */
+        .text-box {
+            position: absolute;
+            border: 1px dashed #0078d4;
+            background: rgba(255,255,240,0.9);
+            padding: 8px;
+            min-width: 100px;
+            font-family: Arial;
+            resize: both;
+            overflow: auto;
+            cursor: move;
+            z-index: 20;
+            color: black;
+        }
+
+        .resize-handle {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 12px;
+            height: 12px;
+            background: #0078d4;
+            cursor: nw-resize;
+        }
+    </style>
 </head>
 <body>
 
-<div class="app-container">
-    <aside class="toolbar">
-        <div class="logo">YB</div>
-        <button id="selectPtr" class="tool-btn active" title="Select Tool"><i class="fas fa-mouse-pointer"></i></button>
-        <button id="brushBtn" class="tool-btn" title="Brush Tool"><i class="fas fa-paint-brush"></i></button>
-        <button id="rectBtn" class="tool-btn" title="Rectangle"><i class="far fa-square"></i></button>
-        <button id="circBtn" class="tool-btn" title="Circle"><i class="far fa-circle"></i></button>
-        <button id="textBtn" class="tool-btn" title="Add Text"><i class="fas fa-font"></i></button>
-        <button id="deleteBtn" class="tool-btn" style="color:#ff7675" title="Delete Selected"><i class="fas fa-eraser"></i></button>
-        <div class="divider"></div>
-        <button id="clearAll" class="tool-btn danger" title="Clear Canvas"><i class="fas fa-trash-alt"></i></button>
-    </aside>
-
-    <main class="workspace">
-        <header class="options-bar">
-            <div class="opt-group">
-                <span>Color:</span>
-                <input type="color" id="mainColor" value="#0984e3">
-            </div>
-            <div class="opt-group">
-                <span>Size:</span>
-                <input type="range" id="mainSize" min="1" max="100" value="5">
-            </div>
-            <div class="opt-group">
-                <button id="toggleGrid">Toggle Grid</button>
-            </div>
-            <div class="actions">
-                <button id="downloadPng" class="save-btn"><i class="fas fa-download"></i> Save Image</button>
-            </div>
-        </header>
-
-        <div id="canvas-wrapper">
-            <canvas id="mainCanvas"></canvas>
-        </div>
-    </main>
+<div class="toolbar">
+    <button class="tool-btn" id="addSlideBtn">+ New Slide</button>
+    <button class="tool-btn" id="deleteSlideBtn">🗑️ Delete Slide</button>
+    <button class="tool-btn" id="drawModeBtn" class="active">✏️ Draw</button>
+    <button class="tool-btn" id="textModeBtn">📝 Add Text</button>
+    <button class="tool-btn" id="clearBoardBtn">🧽 Clear Board</button>
+    <input type="color" id="penColor" class="color-picker" value="#0000ff">
+    <div class="slider-label">
+        <span>Pen Size</span>
+        <input type="range" id="penSize" min="1" max="20" value="3">
+    </div>
+    <button class="tool-btn" id="exportImageBtn">📸 Export as Image</button>
 </div>
 
-<script src="script.js"></script>
+<div class="main-area">
+    <div class="slides-panel" id="slidesPanel"></div>
+    <div class="canvas-container" id="canvasContainer">
+        <canvas id="boardCanvas"></canvas>
+    </div>
+</div>
+
+<script>
+    // ---------- DATA ----------
+    let slides = [];     // each slide = { canvasData: string, textBoxes: [] }
+    let currentSlideIndex = 0;
+    let isDrawing = false;
+    let drawMode = true;   // true = draw, false = text mode
+    let lastX = 0, lastY = 0;
+
+    const canvas = document.getElementById('boardCanvas');
+    const ctx = canvas.getContext('2d');
+    let painting = false;
+
+    // Pen settings
+    let penColor = '#0000ff';
+    let penSize = 3;
+
+    // Text boxes per slide
+    let textBoxes = [];   // each: { id, x, y, text, width, height }
+
+    // DOM elements
+    const slidesPanelDiv = document.getElementById('slidesPanel');
+    const addSlideBtn = document.getElementById('addSlideBtn');
+    const deleteSlideBtn = document.getElementById('deleteSlideBtn');
+    const drawModeBtn = document.getElementById('drawModeBtn');
+    const textModeBtn = document.getElementById('textModeBtn');
+    const clearBoardBtn = document.getElementById('clearBoardBtn');
+    const penColorInput = document.getElementById('penColor');
+    const penSizeInput = document.getElementById('penSize');
+    const exportImageBtn = document.getElementById('exportImageBtn');
+
+    // ---------- HELPER: Resize canvas ----------
+    function resizeCanvas() {
+        const container = document.getElementById('canvasContainer');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        redrawCurrentSlide();
+    }
+
+    // ---------- Save current slide drawing as dataURL ----------
+    function saveCurrentDrawing() {
+        if (slides[currentSlideIndex]) {
+            slides[currentSlideIndex].canvasData = canvas.toDataURL();
+            slides[currentSlideIndex].textBoxes = JSON.parse(JSON.stringify(textBoxes));
+        }
+    }
+
+    // ---------- Redraw current slide ----------
+    function redrawCurrentSlide() {
+        if (!slides[currentSlideIndex]) return;
+
+        // Load drawing
+        const img = new Image();
+        img.onload = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            drawAllTextBoxes();
+        };
+        img.src = slides[currentSlideIndex].canvasData || '';
+        if (!slides[currentSlideIndex].canvasData) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawAllTextBoxes();
+        }
+
+        // Load text boxes
+        if (slides[currentSlideIndex].textBoxes) {
+            textBoxes = JSON.parse(JSON.stringify(slides[currentSlideIndex].textBoxes));
+        } else {
+            textBoxes = [];
+        }
+        drawAllTextBoxes();
+    }
+
+    // Draw all text boxes on canvas container
+    function drawAllTextBoxes() {
+        // Remove existing text divs
+        document.querySelectorAll('.text-box').forEach(el => el.remove());
+
+        const container = document.getElementById('canvasContainer');
+        textBoxes.forEach((box, idx) => {
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text-box';
+            textDiv.contentEditable = "true";
+            textDiv.innerText = box.text;
+            textDiv.style.left = box.x + 'px';
+            textDiv.style.top = box.y + 'px';
+            textDiv.style.width = box.width + 'px';
+            textDiv.style.height = box.height + 'px';
+            textDiv.setAttribute('data-id', box.id);
+
+            // Save text on edit
+            textDiv.addEventListener('blur', (e) => {
+                const id = parseInt(e.target.getAttribute('data-id'));
+                const tb = textBoxes.find(t => t.id === id);
+                if (tb) tb.text = e.target.innerText;
+                saveCurrentDrawing();
+            });
+
+            // Drag functionality
+            let isDragging = false;
+            let startX, startY, origLeft, origTop;
+            textDiv.addEventListener('mousedown', (e) => {
+                if (e.target === textDiv || e.target.parentElement === textDiv) {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    origLeft = parseInt(textDiv.style.left);
+                    origTop = parseInt(textDiv.style.top);
+                    e.preventDefault();
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                let dx = e.clientX - startX;
+                let dy = e.clientY - startY;
+                textDiv.style.left = (origLeft + dx) + 'px';
+                textDiv.style.top = (origTop + dy) + 'px';
+                // update in array
+                const tb = textBoxes.find(t => t.id === box.id);
+                if (tb) {
+                    tb.x = origLeft + dx;
+                    tb.y = origTop + dy;
+                }
+                saveCurrentDrawing();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+
+            // Resize (simple)
+            const handle = document.createElement('div');
+            handle.className = 'resize-handle';
+            textDiv.appendChild(handle);
+            let isResizing = false;
+            handle.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                e.stopPropagation();
+                let startW = parseInt(textDiv.style.width);
+                let startH = parseInt(textDiv.style.height);
+                let startMouseX = e.clientX;
+                let startMouseY = e.clientY;
+
+                const resizeMove = (moveEvent) => {
+                    let newW = startW + (moveEvent.clientX - startMouseX);
+                    let newH = startH + (moveEvent.clientY - startMouseY);
+                    if (newW > 50) textDiv.style.width = newW + 'px';
+                    if (newH > 30) textDiv.style.height = newH + 'px';
+                    const tb = textBoxes.find(t => t.id === box.id);
+                    if (tb) {
+                        tb.width = parseInt(textDiv.style.width);
+                        tb.height = parseInt(textDiv.style.height);
+                    }
+                    saveCurrentDrawing();
+                };
+                const resizeUp = () => {
+                    isResizing = false;
+                    window.removeEventListener('mousemove', resizeMove);
+                    window.removeEventListener('mouseup', resizeUp);
+                };
+                window.addEventListener('mousemove', resizeMove);
+                window.addEventListener('mouseup', resizeUp);
+            });
+
+            container.appendChild(textDiv);
+        });
+    }
+
+    // Add new text box at random position
+    function addNewTextBox() {
+        const newId = Date.now();
+        const newBox = {
+            id: newId,
+            x: 100,
+            y: 100,
+            text: "Double click to edit",
+            width: 150,
+            height: 50
+        };
+        textBoxes.push(newBox);
+        drawAllTextBoxes();
+        saveCurrentDrawing();
+    }
+
+    // ---------- DRAWING FUNCTIONS ----------
+    function startDrawing(e) {
+        if (!drawMode) return;
+        painting = true;
+        const pos = getMousePos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(lastX, lastY);
+        ctx.stroke();
+    }
+
+    function draw(e) {
+        if (!painting || !drawMode) return;
+        const pos = getMousePos(e);
+        const currentX = pos.x;
+        const currentY = pos.y;
+        ctx.strokeStyle = penColor;
+        ctx.lineWidth = penSize;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+        ctx.lineTo(currentX, currentY);
+        ctx.stroke();
+        lastX = currentX;
+        lastY = currentY;
+    }
+
+    function stopDrawing() {
+        painting = false;
+        saveCurrentDrawing();
+    }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        let clientX, clientY;
+        if (e.touches) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+        let x = (clientX - rect.left) * scaleX;
+        let y = (clientY - rect.top) * scaleY;
+        x = Math.min(Math.max(0, x), canvas.width);
+        y = Math.min(Math.max(0, y), canvas.height);
+        return { x, y };
+    }
+
+    function clearBoard() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        saveCurrentDrawing();
+    }
+
+    // ---------- SLIDE MANAGEMENT ----------
+    function addNewSlide() {
+        saveCurrentDrawing();
+        const newSlide = {
+            canvasData: '',
+            textBoxes: []
+        };
+        slides.push(newSlide);
+        currentSlideIndex = slides.length - 1;
+        renderSlideThumbnails();
+        loadSlide(currentSlideIndex);
+    }
+
+    function deleteCurrentSlide() {
+        if (slides.length === 1) {
+            alert("You need at least one slide!");
+            return;
+        }
+        slides.splice(currentSlideIndex, 1);
+        if (currentSlideIndex >= slides.length) currentSlideIndex = slides.length - 1;
+        renderSlideThumbnails();
+        loadSlide(currentSlideIndex);
+    }
+
+    function loadSlide(index) {
+        saveCurrentDrawing();
+        currentSlideIndex = index;
+        resizeCanvas();  // this calls redrawCurrentSlide internally
+        renderSlideThumbnails();
+    }
+
+    function renderSlideThumbnails() {
+        slidesPanelDiv.innerHTML = '';
+        slides.forEach((slide, idx) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'slide-thumb';
+            if (idx === currentSlideIndex) thumb.classList.add('active-slide');
+            thumb.innerHTML = `Slide ${idx + 1}`;
+            thumb.onclick = () => loadSlide(idx);
+            slidesPanelDiv.appendChild(thumb);
+        });
+    }
+
+    // ---------- MODE TOGGLE ----------
+    drawModeBtn.addEventListener('click', () => {
+        drawMode = true;
+        drawModeBtn.classList.add('active');
+        textModeBtn.classList.remove('active');
+        canvas.style.cursor = 'crosshair';
+    });
+    textModeBtn.addEventListener('click', () => {
+        drawMode = false;
+        textModeBtn.classList.add('active');
+        drawModeBtn.classList.remove('active');
+        canvas.style.cursor = 'text';
+        addNewTextBox();   // add text box on click in text mode
+    });
+
+    // ---------- EVENT LISTENERS ----------
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseleave', stopDrawing);
+
+    // Touch for mobile
+    canvas.addEventListener('touchstart', startDrawing);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', stopDrawing);
+
+    addSlideBtn.addEventListener('click', addNewSlide);
+    deleteSlideBtn.addEventListener('click', deleteCurrentSlide);
+    clearBoardBtn.addEventListener('click', clearBoard);
+    penColorInput.addEventListener('change', (e) => penColor = e.target.value);
+    penSizeInput.addEventListener('input', (e) => penSize = parseInt(e.target.value));
+    exportImageBtn.addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `slide_${currentSlideIndex+1}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+
+    window.addEventListener('resize', () => {
+        saveCurrentDrawing();
+        resizeCanvas();
+    });
+
+    // Initialize with one empty slide
+    function init() {
+        slides = [{ canvasData: '', textBoxes: [] }];
+        currentSlideIndex = 0;
+        resizeCanvas();
+        renderSlideThumbnails();
+        drawMode = true;
+        penColor = '#0000ff';
+        penSize = 3;
+    }
+
+    init();
+</script>
 </body>
 </html>
