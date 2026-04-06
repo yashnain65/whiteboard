@@ -1,94 +1,121 @@
-// Initialize Fabric Canvas
-const canvas = new fabric.Canvas('board', {
+const canvas = new fabric.Canvas('mainCanvas', {
     width: window.innerWidth - 70,
     height: window.innerHeight - 60,
-    isDrawingMode: true
+    isDrawingMode: false,
+    preserveObjectStacking: true
 });
 
-// Settings variables
-const colorPicker = document.getElementById('colorPicker');
-const widthSlider = document.getElementById('widthSlider');
+// Settings Elements
+const colorInput = document.getElementById('mainColor');
+const sizeInput = document.getElementById('mainSize');
+const canvasWrapper = document.getElementById('canvas-wrapper');
 
-// Sync Brush Settings
-canvas.freeDrawingBrush.color = colorPicker.value;
-canvas.freeDrawingBrush.width = parseInt(widthSlider.value);
+// 1. Initial Brush Config
+canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+canvas.freeDrawingBrush.width = parseInt(sizeInput.value);
+canvas.freeDrawingBrush.color = colorInput.value;
 
-colorPicker.oninput = () => {
-    canvas.freeDrawingBrush.color = colorPicker.value;
-};
-
-widthSlider.oninput = () => {
-    canvas.freeDrawingBrush.width = parseInt(widthSlider.value);
-};
-
-// Tool Selection Logic
-function deactivateAll() {
+// 2. Tool Switching Logic
+function resetTools() {
     canvas.isDrawingMode = false;
-    document.querySelectorAll('.sidebar button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
 }
 
-document.getElementById('penTool').onclick = function() {
-    deactivateAll();
+// Select Pointer
+document.getElementById('selectPtr').onclick = function() {
+    resetTools();
+    this.classList.add('active');
+};
+
+// Pen/Brush
+document.getElementById('brushBtn').onclick = function() {
+    resetTools();
     canvas.isDrawingMode = true;
     this.classList.add('active');
 };
 
-document.getElementById('selectTool').onclick = function() {
-    deactivateAll();
-    this.classList.add('active');
-};
-
-document.getElementById('rectTool').onclick = function() {
-    deactivateAll();
+// Rectangle
+document.getElementById('rectBtn').onclick = function() {
+    resetTools();
     const rect = new fabric.Rect({
-        left: 100, top: 100, fill: 'transparent', 
-        stroke: colorPicker.value, strokeWidth: parseInt(widthSlider.value),
-        width: 100, height: 100
+        left: 200, top: 200, fill: 'transparent',
+        stroke: colorInput.value, strokeWidth: parseInt(sizeInput.value),
+        width: 150, height: 100
     });
-    canvas.add(rect);
+    canvas.add(rect).setActiveObject(rect);
     this.classList.add('active');
 };
 
-document.getElementById('circleTool').onclick = function() {
-    deactivateAll();
-    const circle = new fabric.Circle({
-        left: 150, top: 150, radius: 50,
-        fill: 'transparent', stroke: colorPicker.value, strokeWidth: parseInt(widthSlider.value)
+// Circle
+document.getElementById('circBtn').onclick = function() {
+    resetTools();
+    const circ = new fabric.Circle({
+        left: 200, top: 200, radius: 60,
+        fill: 'transparent', stroke: colorInput.value, 
+        strokeWidth: parseInt(sizeInput.value)
     });
-    canvas.add(circle);
+    canvas.add(circ).setActiveObject(circ);
     this.classList.add('active');
 };
 
-document.getElementById('textTool').onclick = function() {
-    deactivateAll();
-    const text = new fabric.IText('Double click to type', {
-        left: 100, top: 100, fill: colorPicker.value, fontSize: 24
+// Text Tool
+document.getElementById('textBtn').onclick = function() {
+    resetTools();
+    const text = new fabric.IText('Type here...', {
+        left: 200, top: 200, fill: colorInput.value,
+        fontSize: 30
     });
-    canvas.add(text);
+    canvas.add(text).setActiveObject(text);
     this.classList.add('active');
 };
 
-document.getElementById('eraserTool').onclick = function() {
-    deactivateAll();
-    // Fabric.js simple eraser: Draw with background color
-    canvas.isDrawingMode = true;
-    canvas.freeDrawingBrush.color = '#ffffff';
-    this.classList.add('active');
+// Delete Selected Object
+document.getElementById('deleteBtn').onclick = function() {
+    const activeObjects = canvas.getActiveObjects();
+    if (activeObjects.length) {
+        canvas.discardActiveObject();
+        activeObjects.forEach((obj) => canvas.remove(obj));
+    }
 };
 
-document.getElementById('clearBtn').onclick = () => {
-    if(confirm("Clear everything?")) canvas.clear();
+// Clear Everything
+document.getElementById('clearAll').onclick = () => {
+    if(confirm("Full board saaf kar dein?")) canvas.clear();
 };
 
-document.getElementById('saveBtn').onclick = () => {
-    const dataURL = canvas.toDataURL({ format: 'png', quality: 1 });
+// Toggle Grid
+document.getElementById('toggleGrid').onclick = () => {
+    canvasWrapper.classList.toggle('no-grid');
+};
+
+// Real-time Update Settings
+colorInput.onchange = () => {
+    canvas.freeDrawingBrush.color = colorInput.value;
+    const active = canvas.getActiveObject();
+    if (active) {
+        if (active.type === 'i-text') active.set('fill', colorInput.value);
+        else active.set('stroke', colorInput.value);
+        canvas.renderAll();
+    }
+};
+
+sizeInput.oninput = () => {
+    canvas.freeDrawingBrush.width = parseInt(sizeInput.value);
+};
+
+// Download PNG
+document.getElementById('downloadPng').onclick = () => {
+    const dataURL = canvas.toDataURL({ format: 'png', quality: 1.0 });
     const link = document.createElement('a');
-    link.download = 'whiteboard-export.png';
+    link.download = 'yash-whiteboard.png';
     link.href = dataURL;
     link.click();
 };
 
-// Handle window resize
-window.onresize = () => {
-    canvas.setDimensions({ width: window.innerWidth - 70, height: window.innerHeight - 60 });
-};
+// Handle Window Resize
+window.addEventListener('resize', () => {
+    canvas.setDimensions({ 
+        width: window.innerWidth - 70, 
+        height: window.innerHeight - 60 
+    });
+});
