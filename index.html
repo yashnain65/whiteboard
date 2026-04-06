@@ -3,32 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>SlideBoard - PowerPoint + Whiteboard</title>
+    <title>EduBoard - Interactive Classroom Whiteboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+<!-- Top Navigation Bar -->
+<div class="navbar">
+    <div class="logo">
+        <i class="fas fa-chalkboard-teacher"></i>
+        <span>EduBoard</span>
+        <small>Education Edition</small>
+    </div>
+    <div class="nav-controls">
+        <button id="teacherModeBtn" class="nav-btn active"><i class="fas fa-chalkboard"></i> Teacher</button>
+        <button id="studentModeBtn" class="nav-btn"><i class="fas fa-user-graduate"></i> Student</button>
+        <button id="darkModeToggle" class="nav-btn"><i class="fas fa-moon"></i></button>
+    </div>
+</div>
+
+<!-- Main Toolbar -->
 <div class="toolbar">
-    <button class="tool-btn" id="addSlideBtn">+ New Slide</button>
-    <button class="tool-btn" id="deleteSlideBtn">🗑️ Delete Slide</button>
-    <button class="tool-btn" id="drawModeBtn" class="active">✏️ Draw</button>
-    <button class="tool-btn" id="textModeBtn">📝 Add Text</button>
-    <button class="tool-btn" id="clearBoardBtn">🧽 Clear Board</button>
-    <input type="color" id="penColor" class="color-picker" value="#0000ff">
-    <div class="slider-label">
-        <span>Pen Size</span>
-        <input type="range" id="penSize" min="1" max="20" value="3">
+    <div class="tool-group">
+        <button id="newSlideBtn" class="tool-btn" title="New Slide (Ctrl+N)"><i class="fas fa-plus"></i> Slide</button>
+        <button id="deleteSlideBtn" class="tool-btn" title="Delete Slide"><i class="fas fa-trash"></i></button>
+        <button id="duplicateSlideBtn" class="tool-btn" title="Duplicate Slide"><i class="fas fa-copy"></i></button>
     </div>
-    <button class="tool-btn" id="exportImageBtn">📸 Export as Image</button>
+
+    <div class="divider"></div>
+
+    <div class="tool-group">
+        <button id="drawBtn" class="tool-btn active" title="Draw (Ctrl+D)"><i class="fas fa-pencil-alt"></i> Draw</button>
+        <button id="textBtn" class="tool-btn" title="Add Text (Ctrl+T)"><i class="fas fa-font"></i> Text</button>
+        <button id="shapeBtn" class="tool-btn" title="Shapes"><i class="fas fa-shapes"></i> Shapes</button>
+        <button id="imageBtn" class="tool-btn" title="Add Image"><i class="fas fa-image"></i> Image</button>
+        <button id="mathBtn" class="tool-btn" title="Math Equations"><i class="fas fa-square-root-alt"></i> Math</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tool-group">
+        <input type="color" id="penColor" class="color-picker" value="#2196F3">
+        <input type="range" id="penSize" min="1" max="20" value="3" style="width: 100px;">
+        <span id="sizeValue">3px</span>
+    </div>
+
+    <div class="tool-group">
+        <button id="undoBtn" class="tool-btn" title="Undo (Ctrl+Z)"><i class="fas fa-undo"></i></button>
+        <button id="redoBtn" class="tool-btn" title="Redo (Ctrl+Y)"><i class="fas fa-redo"></i></button>
+        <button id="clearBtn" class="tool-btn" title="Clear Board"><i class="fas fa-eraser"></i></button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tool-group">
+        <button id="presentBtn" class="tool-btn" title="Presentation Mode (F5)"><i class="fas fa-play"></i> Present</button>
+        <button id="exportBtn" class="tool-btn" title="Export as PDF"><i class="fas fa-download"></i> Export</button>
+        <button id="saveBtn" class="tool-btn" title="Save Project"><i class="fas fa-save"></i></button>
+    </div>
 </div>
 
-<div class="main-area">
-    <div class="slides-panel" id="slidesPanel"></div>
-    <div class="canvas-container" id="canvasContainer">
-        <canvas id="boardCanvas"></canvas>
+<!-- Secondary Toolbar (Shapes) -->
+<div id="shapesPanel" class="shapes-panel hidden">
+    <button class="shape-option" data-shape="rectangle"><i class="fas fa-square"></i> Rectangle</button>
+    <button class="shape-option" data-shape="circle"><i class="fas fa-circle"></i> Circle</button>
+    <button class="shape-option" data-shape="line"><i class="fas fa-minus"></i> Line</button>
+    <button class="shape-option" data-shape="arrow"><i class="fas fa-arrow-right"></i> Arrow</button>
+    <button class="shape-option" data-shape="triangle"><i class="fas fa-play"></i> Triangle</button>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-container">
+    <!-- Slides Sidebar -->
+    <div class="slides-sidebar">
+        <div class="sidebar-header">
+            <h4><i class="fas fa-sliders-h"></i> Slides</h4>
+            <button id="addSlideQuickBtn" class="icon-btn"><i class="fas fa-plus"></i></button>
+        </div>
+        <div id="slidesList" class="slides-list"></div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area">
+        <div id="canvasContainer" class="canvas-container">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+        
+        <!-- Floating Controls -->
+        <div class="floating-controls">
+            <button id="zoomInBtn" class="float-btn" title="Zoom In"><i class="fas fa-search-plus"></i></button>
+            <button id="zoomOutBtn" class="float-btn" title="Zoom Out"><i class="fas fa-search-minus"></i></button>
+            <button id="resetZoomBtn" class="float-btn" title="Reset Zoom"><i class="fas fa-expand"></i></button>
+        </div>
+    </div>
+
+    <!-- Properties Panel -->
+    <div class="properties-panel">
+        <div class="prop-header">
+            <h4><i class="fas fa-sliders-h"></i> Properties</h4>
+        </div>
+        <div class="prop-content">
+            <div class="prop-group">
+                <label>Background</label>
+                <select id="bgType">
+                    <option value="white">White</option>
+                    <option value="grid">Grid Paper</option>
+                    <option value="lined">Lined Paper</option>
+                    <option value="dark">Dark Board</option>
+                </select>
+            </div>
+            <div class="prop-group">
+                <label>Font Size</label>
+                <input type="range" id="fontSize" min="12" max="72" value="16">
+            </div>
+            <div class="prop-group">
+                <label>Text Color</label>
+                <input type="color" id="textColor" value="#000000">
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Presentation Modal -->
+<div id="presentModal" class="modal hidden">
+    <div class="modal-content fullscreen">
+        <div class="present-header">
+            <h3>Presentation Mode</h3>
+            <button id="closePresentBtn" class="close-btn"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="present-body">
+            <canvas id="presentCanvas"></canvas>
+        </div>
+        <div class="present-footer">
+            <button id="prevSlideBtn"><i class="fas fa-chevron-left"></i> Previous</button>
+            <span id="slideCounter">Slide 1 of 1</span>
+            <button id="nextSlideBtn">Next <i class="fas fa-chevron-right"></i></button>
+            <button id="exitPresentBtn">Exit (Esc)</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/app.js"></script>
+<script src="js/education.js"></script>
+<script src="js/shapes.js"></script>
+<script src="js/storage.js"></script>
 </body>
 </html>
