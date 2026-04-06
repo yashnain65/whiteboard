@@ -3,29 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yash Digital Board</title>
+    <title>Yash Pro Whiteboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.1/fabric.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <div class="toolbar">
-        <div class="tool-group">
-            <label>Color:</label>
-            <input type="color" id="colorPicker" value="#000000">
-        </div>
-        
-        <div class="tool-group">
-            <label>Size:</label>
-            <input type="range" id="lineWidth" min="1" max="50" value="5">
+    <div class="main-container">
+        <div class="sidebar">
+            <button id="selectTool" title="Select"><i class="fas fa-mouse-pointer"></i></button>
+            <button id="penTool" class="active" title="Pen"><i class="fas fa-pen"></i></button>
+            <button id="rectTool" title="Rectangle"><i class="far fa-square"></i></button>
+            <button id="circleTool" title="Circle"><i class="far fa-circle"></i></button>
+            <button id="textTool" title="Add Text"><i class="fas fa-font"></i></button>
+            <button id="eraserTool" title="Eraser"><i class="fas fa-eraser"></i></button>
+            <hr>
+            <button id="clearBtn" style="color: #e74c3c;"><i class="fas fa-trash"></i></button>
         </div>
 
-        <button id="penBtn" class="active">Pen 🖊️</button>
-        <button id="eraserBtn">Eraser 🧽</button>
-        <button id="clearBtn">Clear All 🗑️</button>
-        <button id="downloadBtn">Save Image 💾</button>
+        <div class="topbar">
+            <div class="setting-item">
+                <label>Color</label>
+                <input type="color" id="colorPicker" value="#2ecc71">
+            </div>
+            <div class="setting-item">
+                <label>Width</label>
+                <input type="range" id="widthSlider" min="1" max="50" value="5">
+            </div>
+            <button id="saveBtn" class="btn-primary">Download PNG</button>
+        </div>
+
+        <canvas id="board"></canvas>
     </div>
-
-    <canvas id="paintCanvas"></canvas>
 
     <script src="script.js"></script>
 </body>
